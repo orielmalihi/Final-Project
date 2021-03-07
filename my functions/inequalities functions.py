@@ -162,6 +162,29 @@ def rearrange_ineq(ineq : Rel):
             cons += v
     return t(nl - cons, -1*cons)
 
+def get_coef(expr: Expr):
+    temp_dic = {}
+    if len(expr.free_symbols) == 1 and isinstance(expr, Symbol):
+        temp_dic[expr] = 1
+        return temp_dic
+    if len(expr.free_symbols) == 1 and isinstance(expr, Mul):
+        if isinstance(expr.args[0], Symbol):
+            temp_dic[expr.args[0]] = expr.args[1]
+            return temp_dic
+        elif isinstance(expr.args[1], Symbol):
+            temp_dic[expr.args[1]] = expr.args[0]
+            return temp_dic
+    for v in expr.args:
+        if isinstance(v, Symbol):
+            temp_dic[v] = temp_dic.get(v, 0) + 1
+        if isinstance(v, Mul):
+            if isinstance(v.args[0], Symbol):
+                temp_dic[v.args[0]] = temp_dic.get(v.args[0], 0) + v.args[1]
+            elif isinstance(v.args[1], Symbol):
+                temp_dic[v.args[1]] = temp_dic.get(v.args[1], 0) + v.args[0]
+    return temp_dic
+
+
 
 def find_valus_interval(iset: List[Rel], expr: Expr):
     _symbols = set()
@@ -169,35 +192,35 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
         _symbols = _symbols.union(r.free_symbols)
     al = []
     bl = []
+    cl = []
+    dl = []
     for r in iset:
         r = rearrange_ineq(r)
-        print("r: ", r)
         tl = []
-        temp_dic = {}
-        for arg in r.lhs.args:
-            if isinstance(arg, Symbol):
-                temp_dic[arg] = temp_dic.get(arg, 0) + 1
-            if isinstance(arg, Mul):
-                if isinstance(arg.args[0], Symbol):
-                    temp_dic[arg.args[0]] = temp_dic.get(arg.args[0], 0) + arg.args[1]
-                elif isinstance(arg.args[1], Symbol):
-                    temp_dic[arg.args[1]] = temp_dic.get(arg.args[1], 0) + arg.args[0]
-
-        if len(r.lhs.free_symbols) == 1 and isinstance(r.lhs, Symbol):
-            temp_dic[r.lhs] = 1
-        elif len(r.lhs.free_symbols) == 1 and isinstance(r.lhs, Mul):
-            if isinstance(r.lhs.args[0], Symbol):
-                temp_dic[r.lhs.args[0]] = r.lhs.args[1]
-            elif isinstance(r.lhs.args[1], Symbol):
-                temp_dic[r.lhs.args[1]] = r.lhs.args[0]
+        temp_dic = get_coef(r.lhs)
         for s in _symbols:
-            # print("s ", s, type(s))
             tl.append(temp_dic.get(s, 0))
         al.append(tl)
         bl.append(r.rhs)
-    #     print(temp_dic)
-    # print("al: ", al)
-    # print("bl: ", bl)
+        print(temp_dic)
+    print("al: ", al)
+    print("bl: ", bl)
+    temp_dic = get_coef(expr)
+    for s in _symbols:
+        cl.append(temp_dic.get(s, 0))
+    print("cl: ", cl)
+    if len(expr.free_symbols) == 1 and (isinstance(expr, Mul) or isinstance(expr, Symbol)):
+        dl.append(0)
+    else:
+        dl.append(0)
+        cons = 0
+        for v in expr.args:
+            if len(v.free_symbols) >= 1:
+                continue
+            else:
+                cons += v
+        dl[0] = cons
+    print("dl: ", dl)
 
 
 eq1 = 2*x + y <= 20
