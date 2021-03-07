@@ -147,7 +147,7 @@ print(opt)
 A = Matrix([[0, 1, 2], [-1, 0, sqrt(2)], [2, 1, 7]])
 print(str(type(A[1,2])))
 
-rel1 = 2*x + sqrt(2) - 1 + y >= 5
+rel1 = 2*x + sqrt(2) - 3 + y >= 5
 print(rel1)
 print(srepr(rel1.lhs))
 print(rel1.lhs.args)
