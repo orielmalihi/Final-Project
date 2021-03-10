@@ -193,7 +193,7 @@ def get_coef(expr: Expr):
     return temp_dic
 
 
-
+# Maximize and Minimize Cx + D constrained with Ax <= B and x >= 0, returning [min, max] interval
 def find_valus_interval(iset: List[Rel], expr: Expr):
     _symbols = set()
     for r in iset:
