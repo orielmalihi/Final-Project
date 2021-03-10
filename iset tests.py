@@ -22,7 +22,7 @@ True
 def simplify_linear_inequalites(iset):
     """
     :param iset: linear inequalities set to be simplified ( redaundent inequalities
-    would be removed.
+    would be removed ).
     :return: simplified set of inequalities.
 >>> eq1 = x + y > 20
 >>> eq2 = x + y > 10

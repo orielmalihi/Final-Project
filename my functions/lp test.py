@@ -156,3 +156,8 @@ print(opt)
 
 s = sqrt(2)
 print(s.evalf())
+
+
+# arr = [1,2,3,-4]
+# arr = Matrix(arr)
+# print(arr*-1)

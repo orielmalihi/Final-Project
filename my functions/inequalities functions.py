@@ -1,4 +1,5 @@
 from sympy import *
+import random
 from typing import List
 
 def pivot(M, i, j):
@@ -59,7 +60,6 @@ def simplex(M, R, S):
             for j in range(A.cols):
                 if A[k, j] < 0:
                     piv_cols.append(j)
-
             if not piv_cols:
                 assert False, 'Infeasible'
             random.shuffle(piv_cols)
@@ -141,26 +141,34 @@ def rearrange_ineq(ineq : Rel):
 
     >>> e = 2 - x  >= y + 4
     >>> rearrange_ineq(e)
-    -x - y >= 2
-    >>> e = (1/2)*x - sqrt(2) - 4 < 0
+    x + y <= -2
+    >>> e = (1/2)*x - sqrt(2) - 4 <= 0
     >>> rearrange_ineq(e)
-    0.5*x < sqrt(2) + 4
+    0.5*x <= sqrt(2) + 4
     >>> e = 3*x + 2*y - 8 - sqrt(2) >= x + 4
     >>> rearrange_ineq(e)
-    2*x + 2*y >= sqrt(2) + 12
+    -2*x - 2*y <= -12 - sqrt(2)
 
     """
     nl = ineq.lhs - ineq.rhs
     cons = 0
-    t = type(ineq)
-    if len(nl.free_symbols) == 1 and isinstance(nl, Mul):
-        return t(nl, 0)
+    op = ineq.rel_op
+    if op != ">=" and op != "<=":
+        assert False, 'mismatch relation'
+    if len(nl.free_symbols) == 1 and isinstance(nl, Mul) and op == "<=":
+        return Le(nl, 0)
+    if len(nl.free_symbols) == 1 and isinstance(nl, Mul) and op == ">=":
+        return Le(-1*nl, 0)
     for v in nl.args:
         if len(v.free_symbols) >= 1:
             continue
         else:
             cons += v
-    return t(nl - cons, -1*cons)
+    if op == ">=":
+        return Le(-1*(nl-cons), cons)
+    elif op == "<=":
+        return Le(nl - cons, -1*cons)
+
 
 def get_coef(expr: Expr):
     temp_dic = {}
@@ -221,21 +229,33 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
                 cons += v
         dl[0] = cons
     print("dl: ", dl)
+    A = Matrix(al)
+    B = Matrix(bl)
+    C = Matrix([cl])
+    D = Matrix(dl)
+    max,b,c = linear_programming(A, B, C, D)
+    min, b,c = linear_programming(A, B, C*-1, D*-1)
+    return [-1*min, max]
+    # print(a)
+    # print(b)
+    # print(c)
+
+
+
 
 
 eq1 = 2*x + y <= 20
-eq2 = -4*x + 5*y <= 10
+eq2 = 4*x + 5*y <= 10
 eq3 = -x + 2*y >= -2
-eq4 = x >= 0
-eq5 = y >= 0
 # print(type(eq1))
 
-find_valus_interval([eq1, eq2, eq3, eq4, eq5], x + 2*y)
+ans = find_valus_interval([eq1, eq2, eq3], x + 2*y)
+print(ans)
 
 # e = 3*x + 2*y - 8 - sqrt(2) >= x + 4
 # e = rearrange_ineq(e)
 # print(e)
 
-# if __name__ == "__main__":
-#     import doctest
-#     doctest.testmod()
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
