@@ -172,29 +172,91 @@ def rearrange_ineq(ineq : Rel):
 
 def get_coef(expr: Expr):
     temp_dic = {}
+    for s in expr.free_symbols:
+        temp_dic[s] = 0
     if len(expr.free_symbols) == 1 and isinstance(expr, Symbol):
         temp_dic[expr] = 1
         return temp_dic
     if len(expr.free_symbols) == 1 and isinstance(expr, Mul):
-        if isinstance(expr.args[0], Symbol):
-            temp_dic[expr.args[0]] = expr.args[1]
-            return temp_dic
-        elif isinstance(expr.args[1], Symbol):
-            temp_dic[expr.args[1]] = expr.args[0]
-            return temp_dic
+        smb = None
+        mul = 1
+        for v in expr.args:
+            if isinstance(v, Symbol):
+                smb = v
+            else:
+                mul *= nsimplify(v)
+        temp_dic[smb] = mul
+        return temp_dic
     for v in expr.args:
         if isinstance(v, Symbol):
             temp_dic[v] = temp_dic.get(v, 0) + 1
         if isinstance(v, Mul):
-            if isinstance(v.args[0], Symbol):
-                temp_dic[v.args[0]] = temp_dic.get(v.args[0], 0) + v.args[1]
-            elif isinstance(v.args[1], Symbol):
-                temp_dic[v.args[1]] = temp_dic.get(v.args[1], 0) + v.args[0]
+            smb = None
+            mul = 1
+            for val in v.args:
+                if isinstance(val, Symbol):
+                    smb = val
+                else:
+                    mul *= nsimplify(val)
+            temp_dic[smb] += mul
     return temp_dic
 
 
 # Maximize and Minimize Cx + D constrained with Ax <= B and x >= 0, returning [min, max] interval
 def find_valus_interval(iset: List[Rel], expr: Expr):
+    """
+    Parameters
+    ----------
+    iset - linear inequalities set of constraints
+    expr - target expression
+
+    Returns the the possible values of expr as an interval.
+    -------
+    >>> eq1 = x <= 2
+    >>> eq2 = y <= 1
+    >>> find_valus_interval([eq1, eq2], x)
+    [0, 2]
+    >>> find_valus_interval([eq1, eq2], y)
+    [0, 1]
+    >>> find_valus_interval([eq1, eq2], y + 2*x)
+    [0, 5]
+
+    >>> eq1 = z >= 2
+    >>> eq2 = z <= sqrt(5)
+    >>> eq3 = x + z <= 3
+    >>> find_valus_interval([eq1, eq2, eq3], z)
+    [2, sqrt(5)]
+    >>> find_valus_interval([eq1, eq2, eq3], x)
+    [0, 1]
+    >>> find_valus_interval([eq1, eq2, eq3], 2*x + z) # we want more value to x and less to z, so z = 2 and x = 1.
+    [2, 4]
+    >>> find_valus_interval([eq1, eq2, eq3], x + 2*z) # we want more value to z and less to x, so z = sqrt(5) and x = 3 - sqrt(5)
+    [4, sqrt(5) + 3]
+
+    >>> eq1 = sqrt(3)*z >= 2
+    >>> eq2 = 1.0*z <= sqrt(5)
+    >>> eq3 = 1/2*x + 0.5*x + z <= 3
+    >>> find_valus_interval([eq1, eq2, eq3], z)
+    [2*sqrt(3)/3, sqrt(5)]
+    >>> find_valus_interval([eq1, eq2, eq3], x)
+    [0, 3 - 2*sqrt(3)/3]
+    >>> find_valus_interval([eq1, eq2, eq3], z - x)
+    [-3 + 4*sqrt(3)/3, sqrt(5)]
+
+    >>> eq1 = x + y <= 2
+    >>> eq2 = 2*x - y <= 6
+    >>> eq3 = -y >= -sqrt(2)
+    >>> find_valus_interval([eq1, eq2, eq3], y)
+    [0, sqrt(2)]
+    >>> find_valus_interval([eq1, eq2, eq3], x)
+    [0, 2]
+    >>> find_valus_interval([eq1, eq2, eq3], x + 2*y)
+    [0, sqrt(2) + 2]
+    >>> eq1 = x <= 6
+    >>> find_valus_interval([eq1], x)
+    [0, 6]
+
+    """
     _symbols = set()
     for r in iset:
         _symbols = _symbols.union(r.free_symbols)
@@ -204,19 +266,20 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     dl = []
     for r in iset:
         r = rearrange_ineq(r)
+        # print("rearenged: ", r)
         tl = []
         temp_dic = get_coef(r.lhs)
+        # print(temp_dic)
         for s in _symbols:
             tl.append(temp_dic.get(s, 0))
         al.append(tl)
         bl.append(r.rhs)
-        print(temp_dic)
-    print("al: ", al)
-    print("bl: ", bl)
+    # print("al: ", al)
+    # print("bl: ", bl)
     temp_dic = get_coef(expr)
     for s in _symbols:
         cl.append(temp_dic.get(s, 0))
-    print("cl: ", cl)
+    # print("cl: ", cl)
     if len(expr.free_symbols) == 1 and (isinstance(expr, Mul) or isinstance(expr, Symbol)):
         dl.append(0)
     else:
@@ -228,7 +291,7 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
             else:
                 cons += v
         dl[0] = cons
-    print("dl: ", dl)
+    # print("dl: ", dl)
     A = Matrix(al)
     B = Matrix(bl)
     C = Matrix([cl])
@@ -244,17 +307,23 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
 
 
 
-eq1 = 2*x + y <= 20
-eq2 = 4*x + 5*y <= 10
-eq3 = -x + 2*y >= -2
+# eq1 = 2*x + y <= 20
+# eq2 = 4*x + 5*y <= 10
+# eq3 = -x + 2*y >= -2
 # print(type(eq1))
 
-ans = find_valus_interval([eq1, eq2, eq3], x + 2*y)
-print(ans)
+# ans = find_valus_interval([eq1, eq2, eq3], x + 2*y)
+# print(ans)
 
 # e = 3*x + 2*y - 8 - sqrt(2) >= x + 4
 # e = rearrange_ineq(e)
 # print(e)
+
+# eq1 = 2.0*x + y <= 6
+# for v in preorder_traversal(eq1.lhs):
+    # print("v: ",v," is rational? ",v.is_Rational)
+# ans = find_valus_interval([eq1], x)
+# print("ans: ", ans)
 
 if __name__ == "__main__":
     import doctest
