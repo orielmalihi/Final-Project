@@ -210,7 +210,7 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     iset - linear inequalities set of constraints
     expr - target expression
 
-    Returns the the possible values of expr as an interval.
+    Returns the the possible values of expr as an interval of [min, max].
     -------
     >>> eq1 = x <= 2
     >>> eq2 = y <= 1
@@ -303,6 +303,54 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     # print(b)
     # print(c)
 
+def is_implied_by(iset: List[Rel], target: Rel):
+    """
+
+    :param iset: linear inequalities set
+    :param target: target linear inequality
+    :return: true if the trager is implied by iset or false
+    if it is not.
+
+    >>> eq1 = 2*x + y <= 20
+    >>> eq2 = -4*x + 5*y <= 10
+    >>> eq3 = -x + 2*y >= -2
+    >>> eq4 = x >= 0
+    >>> eq5 = y >= 0
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= 10)  # the optinal values of x+2y are between [0, 145/7]
+    False
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= -0.00001)
+    True
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= 0.00001)
+    False
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y <= 145/7 + 0.0001)
+    True
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y <= 145/7 - 0.0001)
+    False
+
+    >>> eq1 = z >= 2
+    >>> eq2 = z <= sqrt(5)
+    >>> eq3 = x + z <= 3
+    >>> is_implied_by([eq1, eq2, eq3], 2*x + z >= 1.9999)  # the optinal values of 2*x + z are between [2, 4]
+    True
+    >>> is_implied_by([eq1, eq2, eq3], 2*x + z >= 2.00001)
+    False
+    >>> is_implied_by([eq1, eq2, eq3], 2*x + z <= 4.00001)
+    True
+    >>> is_implied_by([eq1, eq2, eq3], 2*x + z <= 3.9999)
+    False
+    """
+    target = rearrange_ineq(target)
+    min, max = find_valus_interval(iset, target.lhs)
+    rel = target.rel_op
+    if rel == ">=" and min >= target.rhs:
+        return True
+    if rel == ">=" and min < target.rhs:
+        return False
+    if rel == "<=" and max <= target.rhs:
+        return True
+    if rel == "<=" and max >= target.rhs:
+        return False
+    return None
 
 
 
@@ -319,10 +367,9 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
 # e = rearrange_ineq(e)
 # print(e)
 
-# eq1 = 2.0*x + y <= 6
-# for v in preorder_traversal(eq1.lhs):
-    # print("v: ",v," is rational? ",v.is_Rational)
-# ans = find_valus_interval([eq1], x)
+# eq1 = x  >= 2
+# eq2 = x <= 5
+# ans = find_valus_interval([eq1, eq2], -x)
 # print("ans: ", ans)
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from sympy import *
+import numpy as np
 x,y,z = symbols("x y z")
 init_printing(use_unicode=True)
 
@@ -158,3 +159,12 @@ for v in rel1.lhs.args:
     else:
         cons += v
 print(cons)
+
+
+print("****")
+
+arr = np.array([[1,2,3], [4,5,6]])
+arr2 = arr
+arr = None
+print(arr)
+
