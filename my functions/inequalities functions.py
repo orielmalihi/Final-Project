@@ -316,7 +316,7 @@ def is_implied_by(iset: List[Rel], target: Rel):
 
     :param iset: linear inequalities set
     :param target: target linear inequality
-    :return: true if the trager is implied by iset or false
+    :return: true if the traget is implied by iset or false
     if it is not.
 
     >>> eq1 = 2*x + y <= 20
