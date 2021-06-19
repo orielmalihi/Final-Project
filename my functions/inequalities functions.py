@@ -154,7 +154,7 @@ def rearrange_ineq(ineq : Rel):
     cons = 0
     op = ineq.rel_op
     if op != ">=" and op != "<=":
-        assert False, 'mismatch relation'
+        assert False, 'Error: expected <= or >= realtion, got ' + str(op)
     if len(nl.free_symbols) == 1 and isinstance(nl, Mul) and op == "<=":
         return Le(nl, 0)
     if len(nl.free_symbols) == 1 and isinstance(nl, Mul) and op == ">=":
@@ -202,7 +202,7 @@ def get_coef(expr: Expr):
     return temp_dic
 
 
-# Maximize and Minimize Cx + D constrained with Ax <= B and x >= 0, returning [min, max] interval
+# Maximize and Minimize Cx + D (expr) constrained with Ax <= B and x >= 0 (iset), returning [min, max] interval
 def find_valus_interval(iset: List[Rel], expr: Expr):
     """
     Parameters
@@ -236,7 +236,7 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     >>> eq1 = sqrt(3)*z >= 2
     >>> eq2 = 1.0*z <= sqrt(5)
     >>> eq3 = 1/2*x + 0.5*x + z <= 3
-    >>> find_valus_interval([eq1, eq2, eq3], z)
+    >>> find_valus_interval([eq1, eq2, eq3], z )
     [2*sqrt(3)/3, sqrt(5)]
     >>> find_valus_interval([eq1, eq2, eq3], x)
     [0, 3 - 2*sqrt(3)/3]
@@ -255,7 +255,12 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     >>> eq1 = x <= 6
     >>> find_valus_interval([eq1], x)
     [0, 6]
-
+    >>> eq1 = x + y <= 3
+    >>> eq2 = x + y >= 2
+    >>> find_valus_interval([eq1, eq2], x + y)
+    [2, 3]
+    >>> find_valus_interval([eq1, eq2], -x - y)
+    [-3, -2]
     """
     _symbols = set()
     for r in iset:
@@ -277,6 +282,9 @@ def find_valus_interval(iset: List[Rel], expr: Expr):
     # print("al: ", al)
     # print("bl: ", bl)
     temp_dic = get_coef(expr)
+    for s in temp_dic:
+        if s not in _symbols:
+            assert False, 'Error: there is no data about Symbol ' + str(s)
     for s in _symbols:
         cl.append(temp_dic.get(s, 0))
     # print("cl: ", cl)
@@ -316,11 +324,11 @@ def is_implied_by(iset: List[Rel], target: Rel):
     >>> eq3 = -x + 2*y >= -2
     >>> eq4 = x >= 0
     >>> eq5 = y >= 0
-    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= 10)  # the optinal values of x+2y are between [0, 145/7]
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= 10)  # the optional values of x+2y are between [0, 145/7]
     False
     >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= -0.00001)
     True
-    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y >= 0.00001)
+    >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + y >= 0.00001 - y)
     False
     >>> is_implied_by([eq1, eq2, eq3, eq4, eq5], x + 2*y <= 145/7 + 0.0001)
     True
@@ -330,7 +338,7 @@ def is_implied_by(iset: List[Rel], target: Rel):
     >>> eq1 = z >= 2
     >>> eq2 = z <= sqrt(5)
     >>> eq3 = x + z <= 3
-    >>> is_implied_by([eq1, eq2, eq3], 2*x + z >= 1.9999)  # the optinal values of 2*x + z are between [2, 4]
+    >>> is_implied_by([eq1, eq2, eq3], 2*x + z >= 1.9999) # the optinal values of 2*x + z are between [2, 4]
     True
     >>> is_implied_by([eq1, eq2, eq3], 2*x + z >= 2.00001)
     False
@@ -351,6 +359,52 @@ def is_implied_by(iset: List[Rel], target: Rel):
     if rel == "<=" and max >= target.rhs:
         return False
     return None
+
+
+def simplify_linear_inequalites(iset: List[Rel]):
+    """
+    :param iset: linear inequalities set to be simplified ( redaundent inequalities
+    would be removed).
+    :return: simplified set of inequalities.
+    >>> eq1 = x + y >= 10
+    >>> eq2 = x + y >= 20
+    >>> eq3 = x + y <= 30
+    >>> simplify_linear_inequalites([eq1, eq2, eq3])
+    [x + y >= 20, x + y <= 30]
+    >>> eq4 = x + y >= 5
+    >>> eq5 = x + y <= 40
+    >>> simplify_linear_inequalites([eq1, eq2, eq3, eq4, eq5])
+    [x + y >= 20, x + y <= 30]
+    >>> eq1 = x + y >= 10
+    >>> eq2 = x - y >= 20
+    >>> eq2 = 2*x >= 30
+    >>> eq4 = x + y <= 30
+    >>> simplify_linear_inequalites([eq1, eq2, eq3, eq4])
+    [2*x >= 30, x + y <= 30]
+    """
+    # reduced = []
+    # for target in iset:
+    #     temp = []
+    #     for ineq in iset:
+    #         if ineq is not target:
+    #             temp.append(ineq)
+    #     try:
+    #         if not is_implied_by(temp, target):
+    #             reduced.append(target)
+    #     except:
+    #         reduced.append(target)
+    reduced = []
+    tiset = iset
+    while len(tiset) != 0:
+        target = tiset[0]
+        temp = reduced + tiset[1:]
+        try:
+            if not is_implied_by(temp, target):
+                reduced.append(target)
+        except:
+            reduced.append(target)
+        tiset = tiset[1:]
+    return reduced
 
 
 
