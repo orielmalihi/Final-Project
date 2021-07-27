@@ -123,25 +123,25 @@ D = Matrix([0])
 
 # (11/3, [0, 1/3, 2/3], [0, 2/3, 1])
 a,b,c = linear_programming(A, B, C, D)
-print(a)
-print(b)
-print(c)
+# print(a)
+# print(b)
+# print(c)
 
 
 ################################
 
-obj = [-1,-1,-5]
+obj = [1,1,5]
 #      ─┬  ─┬
 #       │   └┤ Coefficient for y
 #       └────┤ Coefficient for x
 
-lhs_ineq = [[ 0,1,2],
-            [-1,0,-3],
-            [2,1,7]]
+lhs_ineq = [[ 1,-1,2],
+            [-1,2,-3],
+            [2,1,-7]]
 
-rhs_ineq = [3,
-            -2,
-            5]
+rhs_ineq = [-4,
+            8,
+            10]
 
 
 bnd = [(0, float("inf")),  # Bounds of x
@@ -152,10 +152,21 @@ from scipy.optimize import linprog
 
 opt = linprog(c=obj, A_ub=lhs_ineq, b_ub=rhs_ineq, bounds=bnd,
               method="revised simplex")
-print(opt)
 
-s = sqrt(2)
-print(s.evalf())
+def neg(arr):
+    for i in range(len(arr)):
+        arr[i] *= -1
+    return arr
+
+
+A = Matrix(lhs_ineq)
+B = Matrix(rhs_ineq)
+C = Matrix([neg(obj)])
+D = Matrix([0])
+optimum, argmax, argmax_dual = linear_programming(A, B, C, D)
+
+print("Optimum: ", opt.fun, ", sympy: ", optimum*-1)
+
 
 
 # arr = [1,2,3,-4]
